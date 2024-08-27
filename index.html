@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Split-View Terminal Blog with IndexedDB</title>
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: monospace;
+            background-color: black;
+            color: #00ff00;
+        }
+
+        #app {
+            display: flex;
+            height: 100%;
+        }
+
+        #blog-posts {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            border-right: 1px solid #00ff00;
+        }
+
+        #terminal {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        #terminal-output {
+            flex-grow: 1;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            white-space: pre-wrap;
+        }
+
+        #input-line {
+            display: flex;
+            align-items: center;
+        }
+
+        #input {
+            flex-grow: 1;
+            background-color: transparent;
+            border: none;
+            color: #00ff00;
+            font-family: monospace;
+            font-size: 16px;
+            outline: none;
+        }
+
+        .post {
+            margin-bottom: 20px;
+            border: 1px solid #00ff00;
+            padding: 10px;
+        }
+
+        .post-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .post-content {
+            margin-bottom: 5px;
+        }
+
+        .post-date {
+            font-size: 0.8em;
+            color: #008800;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .modal-content {
+            background-color: #0a0a0a;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #00ff00;
+            width: 80%;
+            max-width: 500px;
+        }
+
+        .modal input,
+        .modal textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            background-color: black;
+            color: #00ff00;
+            border: 1px solid #00ff00;
+        }
+
+        .modal button {
+            background-color: #00ff00;
+            color: black;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <div id="blog-posts"></div>
+        <div id="terminal">
+            <div id="terminal-output"></div>
+            <div id="input-line">
+                <span>$ </span>
+                <input type="text" id="input" autofocus>
+            </div>
+        </div>
+    </div>
+
+    <div id="newPostModal" class="modal">
+        <div class="modal-content">
+            <h2>Create New Post</h2>
+            <input type="text" id="postTitle" placeholder="Post Title">
+            <textarea id="postContent" placeholder="Post Content" rows="4"></textarea>
+            <button onclick="createPost()">Create Post</button>
+        </div>
+    </div>
+
+    <script>
+        const terminalOutput = document.getElementById('terminal-output');
+        const input = document.getElementById('input');
+        const modal = document.getElementById('newPostModal');
+        const blogPostsContainer = document.getElementById('blog-posts');
+        let posts = [];
+        let db;
+
+        function init() {
+            appendOutput('Welcome to Split-View Terminal Blog with IndexedDB!');
+            appendOutput('Type "help" for a list of commands.');
+            input.addEventListener('keypress', handleInput);
+            initDB();
+        }
+
+        function initDB() {
+            const request = indexedDB.open('BlogDB', 1);
+
+            request.onerror = function (event) {
+                console.error("Database error: " + event.target.error);
+            };
+
+            request.onsuccess = function (event) {
+                db = event.target.result;
+                loadPosts();
+            };
+
+            request.onupgradeneeded = function (event) {
+                db = event.target.result;
+                const objectStore = db.createObjectStore("posts", { keyPath: "id", autoIncrement: true });
+                objectStore.createIndex("date", "date", { unique: false });
+            };
+        }
+
+        function loadPosts() {
+            const transaction = db.transaction(["posts"], "readonly");
+            const objectStore = transaction.objectStore("posts");
+            const request = objectStore.index("date").openCursor(null, "prev");
+
+            posts = [];
+
+            request.onsuccess = function (event) {
+                const cursor = event.target.result;
+                if (cursor) {
+                    posts.push(cursor.value);
+                    cursor.continue();
+                } else {
+                    updateBlogPostsDisplay();
+                }
+            };
+        }
+
+        function handleInput(e) {
+            if (e.key === 'Enter') {
+                const command = input.value;
+                appendOutput(`$ ${command}`);
+                processCommand(command);
+                input.value = '';
+            }
+        }
+
+        function processCommand(cmd) {
+            const lowerCmd = cmd.toLowerCase().trim();
+            if (lowerCmd === 'help') {
+                appendOutput('Available commands:');
+                appendOutput('  list - Show all posts');
+                appendOutput('  view [number] - View a specific post');
+                appendOutput('  new - Create a new post');
+                appendOutput('  clear - Clear the terminal');
+            } else if (lowerCmd === 'list') {
+                if (posts.length === 0) {
+                    appendOutput('No posts yet.');
+                } else {
+                    appendOutput('Posts:');
+                    posts.forEach((post, i) => appendOutput(`  ${i + 1}. ${post.title}`));
+                }
+            } else if (lowerCmd.startsWith('view ')) {
+                const index = parseInt(lowerCmd.split(' ')[1]) - 1;
+                if (index >= 0 && index < posts.length) {
+                    appendOutput(`Title: ${posts[index].title}`);
+                    appendOutput(`Content: ${posts[index].content}`);
+                    appendOutput(`Date: ${posts[index].date}`);
+                } else {
+                    appendOutput('Invalid post number.');
+                }
+            } else if (lowerCmd === 'new') {
+                modal.style.display = 'block';
+            } else if (lowerCmd === 'clear') {
+                terminalOutput.innerHTML = '';
+            } else {
+                appendOutput('Unknown command. Type "help" for a list of commands.');
+            }
+        }
+
+        function appendOutput(text) {
+            terminalOutput.innerHTML += text + '\n';
+            terminalOutput.scrollTop = terminalOutput.scrollHeight;
+        }
+
+        function createPost() {
+            const title = document.getElementById('postTitle').value;
+            const content = document.getElementById('postContent').value;
+            if (title && content) {
+                const newPost = {
+                    title,
+                    content,
+                    date: new Date().toLocaleString()
+                };
+
+                const transaction = db.transaction(["posts"], "readwrite");
+                const objectStore = transaction.objectStore("posts");
+                const request = objectStore.add(newPost);
+
+                request.onsuccess = function (event) {
+                    appendOutput(`New post created: ${title}`);
+                    modal.style.display = 'none';
+                    document.getElementById('postTitle').value = '';
+                    document.getElementById('postContent').value = '';
+                    loadPosts();
+                };
+
+                request.onerror = function (event) {
+                    console.error("Error adding new post: " + event.target.error);
+                };
+            }
+        }
+
+        function updateBlogPostsDisplay() {
+            blogPostsContainer.innerHTML = '';
+            posts.forEach(post => {
+                const postElement = document.createElement('div');
+                postElement.classList.add('post');
+                postElement.innerHTML = `
+                    <div class="post-title">${post.title}</div>
+                    <div class="post-content">${post.content}</div>
+                    <div class="post-date">${post.date}</div>
+                `;
+                blogPostsContainer.appendChild(postElement);
+            });
+        }
+
+        window.onclick = function (event) {
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+
+        init();
+    </script>
+</body>
+
+</html>
