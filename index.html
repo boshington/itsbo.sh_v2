@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Split-View Terminal Blog with IndexedDB</title>
+    <title>It'sBo.sh - Terminal Blog</title>
     <style>
         body,
         html {
@@ -12,20 +12,65 @@
             padding: 0;
             height: 100%;
             font-family: monospace;
-            background-color: black;
-            color: #00ff00;
+            background-color: #111111;
+            color: lightseagreen;
+            display: flex;
+            flex-direction: column;
         }
 
-        #app {
+        #header {
             display: flex;
-            height: 100%;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid goldenrod;
+            background-color: #1a1a1a;
+        }
+
+        #header h1 {
+            font-size: 2em;
+            color: goldenrod;
+            margin: 0;
+        }
+
+        #header a {
+            color: lightseagreen;
+            text-decoration: none;
+            padding: 5px 10px;
+            border: 1px solid goldenrod;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+
+        #header a:hover {
+            background-color: goldenrod;
+            color: #111111;
+        }
+
+        #content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
         }
 
         #blog-posts {
             flex: 1;
             padding: 20px;
             overflow-y: auto;
-            border-right: 1px solid #00ff00;
+            border-right: 1px solid goldenrod;
+        }
+
+        #right-side {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #about {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            border-bottom: 1px solid goldenrod;
         }
 
         #terminal {
@@ -40,6 +85,7 @@
             overflow-y: auto;
             margin-bottom: 10px;
             white-space: pre-wrap;
+            max-height: calc(100% - 30px);
         }
 
         #input-line {
@@ -51,7 +97,7 @@
             flex-grow: 1;
             background-color: transparent;
             border: none;
-            color: #00ff00;
+            color: lightseagreen;
             font-family: monospace;
             font-size: 16px;
             outline: none;
@@ -59,13 +105,14 @@
 
         .post {
             margin-bottom: 20px;
-            border: 1px solid #00ff00;
+            border: 1px solid goldenrod;
             padding: 10px;
         }
 
         .post-title {
             font-weight: bold;
             margin-bottom: 5px;
+            color: goldenrod;
         }
 
         .post-content {
@@ -74,7 +121,7 @@
 
         .post-date {
             font-size: 0.8em;
-            color: #008800;
+            color: #20b2aa;
         }
 
         .modal {
@@ -89,12 +136,13 @@
         }
 
         .modal-content {
-            background-color: #0a0a0a;
+            background-color: #1a1a1a;
             margin: 15% auto;
             padding: 20px;
-            border: 1px solid #00ff00;
+            border: 1px solid goldenrod;
             width: 80%;
             max-width: 500px;
+            box-sizing: border-box;
         }
 
         .modal input,
@@ -102,29 +150,114 @@
             width: 100%;
             padding: 10px;
             margin: 10px 0;
-            background-color: black;
-            color: #00ff00;
-            border: 1px solid #00ff00;
+            background-color: #111111;
+            color: lightseagreen;
+            border: 1px solid goldenrod;
+            box-sizing: border-box;
         }
 
         .modal button {
-            background-color: #00ff00;
-            color: black;
+            background-color: goldenrod;
+            color: #111111;
             padding: 10px 20px;
             border: none;
             cursor: pointer;
+        }
+
+        .modal button:hover {
+            background-color: #daa520;
+        }
+
+        h2 {
+            color: goldenrod;
+        }
+
+        /* Custom scrollbar styles */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: lightseagreen;
+            border: 2px solid #1a1a1a;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #20b2aa;
+        }
+
+        /* For Firefox */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: lightseagreen #1a1a1a;
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            #content {
+                flex-direction: column;
+            }
+
+            #right-side {
+                order: -1;
+            }
+
+            #blog-posts {
+                border-right: none;
+                border-top: 1px solid goldenrod;
+            }
+
+            #about,
+            #terminal,
+            #blog-posts {
+                flex: none;
+                height: auto;
+                max-height: none;
+            }
+
+            #terminal-output {
+                max-height: 300px;
+            }
+
+            #header {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            #header h1 {
+                margin-bottom: 10px;
+            }
         }
     </style>
 </head>
 
 <body>
-    <div id="app">
+    <div id="header">
+        <h1>It'sBo.sh</h1>
+        <a href="https://www.itsbo.sh/targetbuddy/" target="_blank">Target Buddy</a>
+    </div>
+    <div id="content">
         <div id="blog-posts"></div>
-        <div id="terminal">
-            <div id="terminal-output"></div>
-            <div id="input-line">
-                <span>$ </span>
-                <input type="text" id="input" autofocus>
+        <div id="right-side">
+            <div id="about">
+                <h2>About this page</h2>
+                <p>Welcome to It'sBo.sh, a terminal-styled blog where you can create, view, and remove posts using
+                    command-line interface or a modal popup. Type 'help' in the terminal below to see available
+                    commands.</p>
+                <p>You can create new posts directly from the command line using the 'new' command followed by the title
+                    and content. For example: new "My Title" This is the content of my post.</p>
+                <p>To remove a post, use the 'remove' command followed by the post number. For example: remove 1</p>
+            </div>
+            <div id="terminal">
+                <div id="terminal-output"></div>
+                <div id="input-line">
+                    <span>$ </span>
+                    <input type="text" id="input" autofocus>
+                </div>
             </div>
         </div>
     </div>
@@ -139,6 +272,7 @@
     </div>
 
     <script>
+        // The JavaScript remains the same as in the previous version
         const terminalOutput = document.getElementById('terminal-output');
         const input = document.getElementById('input');
         const modal = document.getElementById('newPostModal');
@@ -147,7 +281,7 @@
         let db;
 
         function init() {
-            appendOutput('Welcome to Split-View Terminal Blog with IndexedDB!');
+            appendOutput('Welcome to It\'sBo.sh Terminal Blog!');
             appendOutput('Type "help" for a list of commands.');
             input.addEventListener('keypress', handleInput);
             initDB();
@@ -200,12 +334,16 @@
         }
 
         function processCommand(cmd) {
-            const lowerCmd = cmd.toLowerCase().trim();
+            const trimmedCmd = cmd.trim();
+            const lowerCmd = trimmedCmd.toLowerCase();
+
             if (lowerCmd === 'help') {
                 appendOutput('Available commands:');
                 appendOutput('  list - Show all posts');
                 appendOutput('  view [number] - View a specific post');
-                appendOutput('  new - Create a new post');
+                appendOutput('  new - Open modal to create a new post');
+                appendOutput('  new "Title" Content - Create a new post directly');
+                appendOutput('  remove [number] - Remove a specific post');
                 appendOutput('  clear - Clear the terminal');
             } else if (lowerCmd === 'list') {
                 if (posts.length === 0) {
@@ -225,6 +363,21 @@
                 }
             } else if (lowerCmd === 'new') {
                 modal.style.display = 'block';
+            } else if (trimmedCmd.toLowerCase().startsWith('new ')) {
+                const match = trimmedCmd.match(/new\s+"([^"]+)"\s+(.+)/i);
+                if (match) {
+                    const [, title, content] = match;
+                    createPostFromCommand(title, content);
+                } else {
+                    appendOutput('Invalid format. Use: new "Title" Content');
+                }
+            } else if (lowerCmd.startsWith('remove ')) {
+                const index = parseInt(lowerCmd.split(' ')[1]) - 1;
+                if (index >= 0 && index < posts.length) {
+                    removePost(posts[index].id);
+                } else {
+                    appendOutput('Invalid post number.');
+                }
             } else if (lowerCmd === 'clear') {
                 terminalOutput.innerHTML = '';
             } else {
@@ -237,6 +390,19 @@
             terminalOutput.scrollTop = terminalOutput.scrollHeight;
         }
 
+        function createPostFromCommand(title, content) {
+            if (title && content) {
+                const newPost = {
+                    title,
+                    content,
+                    date: new Date().toLocaleString()
+                };
+                addPostToDB(newPost);
+            } else {
+                appendOutput('Error: Title and content are required.');
+            }
+        }
+
         function createPost() {
             const title = document.getElementById('postTitle').value;
             const content = document.getElementById('postContent').value;
@@ -246,32 +412,52 @@
                     content,
                     date: new Date().toLocaleString()
                 };
-
-                const transaction = db.transaction(["posts"], "readwrite");
-                const objectStore = transaction.objectStore("posts");
-                const request = objectStore.add(newPost);
-
-                request.onsuccess = function (event) {
-                    appendOutput(`New post created: ${title}`);
-                    modal.style.display = 'none';
-                    document.getElementById('postTitle').value = '';
-                    document.getElementById('postContent').value = '';
-                    loadPosts();
-                };
-
-                request.onerror = function (event) {
-                    console.error("Error adding new post: " + event.target.error);
-                };
+                addPostToDB(newPost);
+                modal.style.display = 'none';
+                document.getElementById('postTitle').value = '';
+                document.getElementById('postContent').value = '';
             }
+        }
+
+        function addPostToDB(newPost) {
+            const transaction = db.transaction(["posts"], "readwrite");
+            const objectStore = transaction.objectStore("posts");
+            const request = objectStore.add(newPost);
+
+            request.onsuccess = function (event) {
+                appendOutput(`New post created: ${newPost.title}`);
+                loadPosts();
+            };
+
+            request.onerror = function (event) {
+                console.error("Error adding new post: " + event.target.error);
+                appendOutput("Error creating post. Please try again.");
+            };
+        }
+
+        function removePost(id) {
+            const transaction = db.transaction(["posts"], "readwrite");
+            const objectStore = transaction.objectStore("posts");
+            const request = objectStore.delete(id);
+
+            request.onsuccess = function (event) {
+                appendOutput(`Post removed successfully.`);
+                loadPosts();
+            };
+
+            request.onerror = function (event) {
+                console.error("Error removing post: " + event.target.error);
+                appendOutput("Error removing post. Please try again.");
+            };
         }
 
         function updateBlogPostsDisplay() {
             blogPostsContainer.innerHTML = '';
-            posts.forEach(post => {
+            posts.forEach((post, index) => {
                 const postElement = document.createElement('div');
                 postElement.classList.add('post');
                 postElement.innerHTML = `
-                    <div class="post-title">${post.title}</div>
+                    <div class="post-title">${index + 1}. ${post.title}</div>
                     <div class="post-content">${post.content}</div>
                     <div class="post-date">${post.date}</div>
                 `;
